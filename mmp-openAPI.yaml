@@ -1,0 +1,269 @@
+openapi: 3.0.3
+info:
+  title: Me and My Planet API
+  description: Me and My Planet API
+  version: 0.0.1
+servers:
+  - url: http://localhost:8080
+paths:
+  /myData/groupInfo:
+    get:
+      summary: Request information about the group the user is part of
+      tags:
+        - data queries
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User group information. If user is not part of a group, an empty body is sent.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  periodStart:
+                    type: string
+                  periodEnd:
+                    type: string
+
+  /myData/byCategory/{categoryID}:
+    get:
+      summary: Request user data of a certain category
+      tags:
+        - data queries
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - in: path
+          name: categoryID
+          description: ID of category to query
+          required: true
+          schema:
+            type: number
+          example: 17
+      responses:
+        '200':
+          description: array of user data for selected category across all dates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataItem'
+        '400':
+          description: bad input parameter
+
+  /myData/byDate/{dateString}:
+    get:
+      summary: Request user data of a certain category
+      tags:
+        - data queries
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - in: path
+          name: dateString
+          description: date in ISO-8601 Format
+          required: true
+          schema:
+            type: string
+          example: 2024-11-22
+      responses:
+        '200':
+          description: array of user data for selected date across all categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataItem'
+        '400':
+          description: bad input parameter
+
+  /schema/categories:
+    get:
+      summary: Request category metadata
+      tags:
+        - schema queries
+      responses:
+        '200':
+          description: array of category metadata
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategorySchema'
+
+  /schema/items:
+    get:
+      summary: Request items metadata
+      tags:
+        - schema queries
+
+      responses:
+        '200':
+          description: array of item metadata
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemSchema'
+
+  /schema/units:
+    get:
+      summary: Request units metadata
+      tags:
+        - schema queries
+
+      responses:
+        '200':
+          description: array of units metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                    example: 0
+                  name:
+                    type: string
+                    example: km
+                  numeric:
+                    type: boolean
+                    description: If numeric is 0, the amount must be determined using unit options.
+
+  /schema/unitOptions:
+    get:
+      summary: Request unitOptions metadata
+      tags:
+        - schema queries
+
+      responses:
+        '200':
+          description: array of unitOptions metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                    example: 0
+                  unit:
+                    type: number
+                    example: 0
+                    description: This is the ID of the unit this item is measured in.
+                  optionsLabel:
+                    type: string
+                    example: small
+                  value:
+                    type: number
+                    description: The amount this unit option equals to
+
+  /auth/{loginType}/{userName}/{credentials}:
+    get:
+      summary: User authorization
+      tags:
+        - authorization
+      parameters:
+        - in: path
+          name: loginType
+          required: true
+          schema:
+            type: string
+          example: local / switch-edu / google / etc.
+
+        - in: path
+          name: userName
+          required: true
+          schema:
+            type: string
+          example: fierceUser03
+
+        - in: path
+          name: credentials
+          description: Format of credentials heavily depends on login type, e.g., password vs SSO-token.
+          required: true
+          schema:
+            type: string
+          example: mes3cr3tpAzzw0rd
+
+
+      responses:
+        '200':
+          description: auth successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    JWT:
+                      type: string
+
+components:
+  schemas:
+    DataItem:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: 2024-11-22
+        amount:
+          type: number
+          example: 3.8
+        itemID:
+          type: number
+          example: 17
+
+    CategorySchema:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Category ID
+          example: 24
+        name:
+          type: string
+          example: Meat Products
+
+        comment:
+          type: string
+          example: Products primariy containing animal meat
+
+        parent:
+          type: number
+          description: ID of parent category, -1 is no parent category exists
+          example: 21
+
+    ItemSchema:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Coffee
+        comment:
+          type: string
+          example: Average coffee without further specification
+        unit:
+          type: string
+          example: cups
+        category:
+          type: number
+          example: 12
+        kgco2perunit:
+          type: number
+          example: 0.23
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: Bearer
+      bearerFormat: JWT

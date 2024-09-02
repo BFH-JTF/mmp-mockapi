@@ -1,0 +1,13 @@
+### GET categories
+GET http://localhost:8080/schema/categories
+
+
+### items
+GET http://localhost:8080/schema/items
+
+### user auth
+GET http://localhost:8080/auth/local/mmp-admin@bfh.ch/mmpadminpw
+
+### group info
+GET http://localhost:8080/myData/groupInfo
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOjAsImlhdCI6MTcyNTAxMzI4MH0.atXEB3AiDNRn5eL9T7-SmsNUmhGNqyYb7-ScPJ0TxzI
