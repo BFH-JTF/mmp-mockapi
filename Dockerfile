@@ -1,15 +1,10 @@
-FROM node:slim
-ENV NODE_ENV development
-WORKDIR .
-
-# Copying all the files in our project
-COPY . .
-
-# Installing dependencies
+FROM node:20-alpine
+WORKDIR /usr/src/app
+RUN mkdir "db"
+COPY ./db/* ./db/
+COPY ./package.json ./
 RUN npm install
-
-# Starting our application
-CMD [ "node", "/src/main.js" ]
-
-# Exposing server port
+COPY ./dist/*.js ./
 EXPOSE 8080
+CMD ["node", "main.js"]
+
