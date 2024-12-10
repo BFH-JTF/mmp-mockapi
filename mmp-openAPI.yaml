@@ -1,9 +1,10 @@
 openapi: 3.0.3
 info:
-  title: Me and My Planet API
-  description: Me and My Planet API
-  version: 0.0.1
+  title: Me and My Planet (Mock) API
+  description: Mock API for Me and My Planet
+  version: 0.0.2
 servers:
+  - url: https://mmp-mockapi.pantek.app
   - url: http://localhost:8080
 paths:
   /myData/groupInfo:
@@ -12,21 +13,36 @@ paths:
       tags:
         - data queries
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
-        '200':
+        200:
           description: User group information. If user is not part of a group, an empty body is sent.
           content:
             application/json:
               schema:
                 type: object
+                additionalProperties: false
                 properties:
                   name:
                     type: string
+                    maxLength: 128
                   periodStart:
                     type: string
+                    format: date
+                    maxLength: 10
                   periodEnd:
                     type: string
+                    format: date
+                    maxLength: 10
+        default:
+          description: "Error String"
+          content:
+            text/plain:
+              schema:
+                type: string
+                pattern: '^[A-Za-z0-9]+$'
+                maxLength: 255
+
 
   /myData/byCategory/{categoryID}:
     get:
@@ -58,7 +74,7 @@ paths:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties: { }
 
   /myData/byDate/{dateString}:
     get:
@@ -90,13 +106,14 @@ paths:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties: { }
 
   /myData/addDaily:
     post:
       summary: Add data to database
       tags:
         - data queries
+      operationId: addDaily
       security:
         - bearerAuth: [ ]
       requestBody:
@@ -112,14 +129,18 @@ paths:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties:
+                  lastID:
+                    type: number
+                    example: 12
+                    description: ID of last newly created data entry
         '400':
           description: Error while adding data
           content:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties: { }
 
   /myData/editDaily/{entryID}:
     post:
@@ -140,26 +161,87 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NewDailyData"
+              $ref: "#/components/schemas/ChangeDailyData"
+      responses:
+        '200':
+          description: Successfully update the data
+        '400':
+          description: Error while updating data
+
+  /myData/removeDaily/{entryID}:
+    get:
+      summary: Remove existing daily tracker entry
+      tags:
+        - data queries
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - in: path
+          name: entryID
+          schema:
+            type: number
+          required: true
+          description: ID of entry to edit
+      responses:
+        200:
+          description: Entry successfully removed
+        400:
+          description: Error when trying to remove entry
+
+  /myData/listFlights:
+    get:
+      summary: List all flights for this user
+      tags:
+        - data queries
+      security:
+        - bearerAuth: [ ]
+
       responses:
         '200':
           description: Successfully added new data
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/FlightItemResponse'
         '400':
-          description: Error while adding data
+          description: Error while reading data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { }
 
-  /myData/addFlight:
-    post:
+  /myData/addFlight/{date}/{originCode}/{destinationCode}/{class}:
+    get:
       summary: Add flight to database
       tags:
         - data queries
       security:
         - bearerAuth: [ ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/FlightItem"
+      parameters:
+        - in: path
+          name: date
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: originCode
+          required: true
+          schema:
+            type: string
+            maxLength: 3
+        - in: path
+          name: destinationCode
+          required: true
+          schema:
+            type: string
+            maxLength: 3
+        - in: path
+          name: class
+          required: true
+          schema:
+            type: number
       responses:
         '200':
           description: Successfully added new data
@@ -167,14 +249,14 @@ paths:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties: { }
         '400':
           description: Error while adding data
           content:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties: { }
 
   /myData/editFlight/{flightID}:
     post:
@@ -195,7 +277,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/FlightItem"
+              $ref: "#/components/schemas/FlightItemResponse"
       responses:
         '200':
           description: Successfully added new data
@@ -203,7 +285,7 @@ paths:
           description: Error while adding data
 
   /myData/removeFlight/{flightID}:
-    post:
+    get:
       summary: Remove flight from database
       tags:
         - data queries
@@ -216,12 +298,6 @@ paths:
           schema:
             type: number
           description: The ID of the flight to remove
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/FlightItem"
       responses:
         '200':
           description: Successfully added new data
@@ -229,14 +305,14 @@ paths:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties: { }
         '400':
           description: Error while adding data
           content:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties: { }
 
   /schema/categories:
     get:
@@ -270,7 +346,7 @@ paths:
 
   /schema/units:
     get:
-      summary: Request units metadata
+      summary: Request units metadatamock-password
       tags:
         - schema queries
 
@@ -331,20 +407,29 @@ paths:
           required: true
           schema:
             type: string
-          example: local / switch-edu / google / etc.
+          examples:
+            local-login:
+              value: local
+            switch-edu-login:
+              value: switch
+            google-login:
+              value: google
+
         - in: path
           name: userName
           required: true
           schema:
             type: string
-          example: fierceUser03
+          example: manuela.muster@students.bfh.ch
         - in: path
           name: credentials
           description: Format of credentials heavily depends on login type, e.g., password vs SSO-token.
           required: true
           schema:
             type: string
-          example: mes3cr3tpAzzw0rd
+          examples:
+            local-login:
+              value: mock-password
       responses:
         '200':
           description: auth successful
@@ -360,6 +445,8 @@ paths:
 
 components:
   schemas:
+    Error:
+      type: string
     DataItem:
       type: object
       properties:
@@ -420,19 +507,57 @@ components:
           type: string
         amountNumeric:
           type: number
+          minimum: 0
         amountOption:
           type: number
+          minimum: 0
+        itemID:
+          type: number
 
-    FlightItem:
+    ChangeDailyData:
       type: object
       properties:
+        id:
+          type: number
+          minimum: 0
+        amountNumeric:
+          type: number
+          minimum: 0
+        amountOption:
+          type: number
+          minimum: 0
+
+    FlightItemResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - flightID
+        - date
+        - origin
+        - destination
+        - class
+        - co2eq
+      properties:
+        flightID:
+          type: number
+          minimum: 0
+        user:
+          type: number
         date:
           type: string
+          format: date
+          maxLength: 10
         origin:
           type: string
         destination:
           type: string
         class:
+          type: number
+        co2eq:
+          type: number
+        kilometer:
+          type: number
+        ubp:
           type: number
 
   securitySchemes:
