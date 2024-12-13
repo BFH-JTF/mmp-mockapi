@@ -258,32 +258,6 @@ paths:
                 type: object
                 properties: { }
 
-  /myData/editFlight/{flightID}:
-    post:
-      summary: Edit flight in database
-      tags:
-        - data queries
-      security:
-        - bearerAuth: [ ]
-      parameters:
-        - in: path
-          name: flightID
-          required: true
-          schema:
-            type: number
-          description: The ID of the flight to edit
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/FlightItemResponse"
-      responses:
-        '200':
-          description: Successfully added new data
-        '400':
-          description: Error while adding data
-
   /myData/removeFlight/{flightID}:
     get:
       summary: Remove flight from database
@@ -551,7 +525,7 @@ components:
           type: string
         destination:
           type: string
-        class:
+        flightClass:
           type: number
         co2eq:
           type: number

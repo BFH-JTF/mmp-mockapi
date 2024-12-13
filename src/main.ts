@@ -116,16 +116,42 @@ app.get("/myData/removeDaily/:entryID", authenticateJWT, (req:express.Request, r
     }
 })
 
+let getDailyByDate = db.prepare('SELECT date, id, item, amountNumeric, amountOption FROM tracker_daily WHERE user = ? AND date = ?')
+app.get("/myData/byDate/:dateString", authenticateJWT, (req:express.Request, res:express.Response) => {
+    try {
+        let byDate  = <{date: string, id: number, item: number, amountNumeric: number, amountOption: number}[]> getDailyByDate.all(req.userID, req.params.dateString);
+        res.status(200).json(byDate);
+    }
+    catch (e) {
+        console.log("Error getting daily data by date");
+        res.sendStatus(400);
+    }
+})
+
+let getDailyByCategory = db.prepare('SELECT date, dailyitems.id, item, amountNumeric, amountOption FROM tracker_daily JOIN dailyitems ON item=dailyitems.id WHERE user = ? AND dailyitems.category = ?');
+app.get("/myData/byCategory/:categoryID", authenticateJWT, (req:express.Request, res:express.Response) => {
+    try {
+        let byCat  = <{date: string, id: number, item: number, amountNumeric: number, amountOption: number}[]> getDailyByCategory.all(req.userID, req.params.categoryID);
+        res.status(200).json(byCat);
+    }
+    catch (e) {
+        console.log("Error getting daily data by date");
+        res.sendStatus(400);
+    }
+})
+
 let listFlights = db.prepare('SELECT * FROM tracker_flights WHERE user = ?');
 app.get("/myData/listFlights", authenticateJWT, (req:express.Request, res:express.Response) => {
     const flightList = listFlights.all(req.userID);
-    res.json(flightList);
+    res.status(200).json(flightList);
 })
 
-let addFlight = db.prepare('INSERT INTO tracker_flights (user, origin, destination, class, kilometer, co2eq, ubp, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-app.get("/myData/addFlight/:date/:origin/:destination/:class", authenticateJWT, (req:express.Request, res:express.Response) => {
+let addFlight = db.prepare('INSERT INTO tracker_flights (user, origin, destination, flightClass, kilometer, co2eq, ubp, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+app.get("/myData/addFlight/:date/:origin/:destination/:flightClass", authenticateJWT, (req:express.Request, res:express.Response) => {
     try{
-        addFlight.run(req.userID, req.params.origin, req.params.destination, Number(req.params.class), 555, 2020, 800, req.params.date);
+        // TODO Add call to ClimateAPI to get realistic numbers
+
+        addFlight.run(req.userID, req.params.origin, req.params.destination, Number(req.params.flightClass), 555, 2020, 800, req.params.date);
         let lastID = <{seq: number}> getLastId.get("tracker_flights");
         res.json({lastID: lastID.seq});
     }
