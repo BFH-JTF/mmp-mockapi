@@ -142,7 +142,7 @@ paths:
                 type: object
                 properties: { }
 
-  /myData/editDaily/{entryID}:
+  /myData/updateDaily/{entryID}:
     post:
       summary: Edit existing data in database by entry ID
       tags:
@@ -274,19 +274,84 @@ paths:
           description: The ID of the flight to remove
       responses:
         '200':
-          description: Successfully added new data
+          description: Successfully removed flight
           content:
             application/json:
               schema:
                 type: object
                 properties: { }
         '400':
-          description: Error while adding data
+          description: Error while removing flight
           content:
             application/json:
               schema:
                 type: object
                 properties: { }
+        '404':
+          description: Flight to remove not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { }
+
+  /myData/lifestyle/emissions:
+    get:
+      summary: Get lifestyle emissions for user
+      tags:
+        - data queries
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: Successfully sent lifestyle data
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/LifeStyleEmissions'
+
+  /myData/lifestyle:
+    get:
+      summary: Get lifestyle settings for user
+      tags:
+        - data queries
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: Successfully received lifestyle data
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/LifeStyle'
+    post:
+      summary: Save new lifestyle settings for user
+      tags:
+        - data queries
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifeStyle"
+      responses:
+        '200':
+          description: Successfully saved lifestyle data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { }
+        '400':
+          description: Error while saving lifestyle data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /schema/categories:
     get:
@@ -421,6 +486,110 @@ components:
   schemas:
     Error:
       type: string
+
+    LifeStyleEmissions:
+      type: object
+      properties:
+        housing_co2:
+          type: number
+          description: Housing emissions in co2 and kg per year
+        energy_co2:
+          type: number
+          description: Energy emissions in co2 and kg per year
+        consumption_co2:
+          type: number
+          description: Consumption emissions in co2 and kg per year
+
+    LifeStyle:
+      type: object
+      properties:
+        houseType:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: 0 = single family house  1 = multi-family house
+        heatingType:
+          type: number
+          minimum: 0
+          maximum: 8
+          description: House Heating Type 0 = Oil Heating, 1 = Gas Heating, 2 = Oil Heating with Solar Panels, 3 = Gas Heating with Solar Panels, 4 = District Heating, 5 = Electric Heating, 6 = Heat Pump, 7 = Wood with Solar Panels, 8 = Wood (pellets, chips or lump wood)
+        houseAge:
+          type: number
+          minimum: 0
+          maximum: 6
+          description: 0 = Year of Construction (Total Renovation) before 1980, 1 = Year of Construction (Total Renovation) 1980-1990, 2 = Year of Construction (Total Renovation) 1991 - 2008, 3 = Year of Construction (Total Renovation) after 2008, 4 = Minergie (Low Energy House), 5 = Minergie-A (Zero or Plus Energy House), 6 = Minergie-P (Minimum Energy House)
+        temp:
+          type: number
+          minimum: 0
+          maximum: 3
+          description: House Temperature 0 = <18 °C, 1 = 18 – 19 °C, 2 = 20 – 22 °C, 3 = > 22 °C
+        area:
+          type: number
+          minimum: 0
+          maximum: 8
+          description: Heated Living Area 0 = > 300 m2, 1 = 201 - 300 m2, 2 = 151 - 200 m2, 3 = 126 - 150 m2, 4 = 101 - 125 m2, 5 = 76 - 100 m2, 6 = 51 - 75 m2, 7 = 30 - 50 m2, 8 = < 30 m2
+        persons:
+          type: number
+          minimum: 1
+          description: Size of household in persons
+        warmWaterType:
+          type: number
+          minimum: 0
+          maximum: 8
+          description: Type of Warm Water Heating 0 = Oil Heating, 1 = Gas Heating, 2 = Oil Heating with Solar Panels, 3 = Gas Heating with Solar Panels, 4 = District Heating, 5 = Electric Heating, 6 = Heat Pump, 7 = Wood with Solar Panels, 8 = Wood (pellets, chips or lump wood)
+        efficiency:
+          type: number
+          minimum: 0
+          maximum: 5
+          description: Efficiency class of appliances 0 = Worse than A, 1 = A and better, 2 = A+ and better, 3 = A++ and better, 4 = I don't know – most of my appliances are more than 10 years old, 5 = I don't know – most of my appliances are less than 10 years old
+        fridge:
+          type: number
+          minimum: 0
+          maximum: 2
+          description: Cooling appliances 0 = Several refrigerators and/or freezers, 1 = Fridge-freezer combination (two-door) or fridge with small freezer compartement plus a freezer, 3 = Refrigerator with a small freezer compartment
+        washing:
+          type: number
+          minimum: 0
+          maximum: 2
+          description: Mode of washing 0 = Any laundry at the maximum intended washing temperature and sometimes also
+            boil wash (95°C), 1 = Most of the laundry at 40°C, about one third at 60°C, no boil wash
+            (95°C), 2 = More than half of the laundry at 30°C and less, only very rarely 60°C
+        drying:
+          type: number
+          minimum: 0
+          maximum: 2
+          description: Mode of drying 0 = Only in tumbler or room with air dryer, 1 = partly with tumbler/air dryer, partly on the clothesline, 2 = On the clothesline
+        eco:
+          type: number
+          minimum: 0
+          maximum: 2
+          description: Share of "nature-made" electricity 0 = none, 1 = part of it, 2 = all of it
+        clothes:
+          type: number
+          minimum: 0
+          maximum: 4
+          description: monthly expenses for shoes and clothing 0 = Very high (more than CHF 250 per month), 1 = High (ca. CHF 125 per month), 2 = Average (ca. CHF 100 per month), 3 = Low (ca. CHF 50 per month), 4 = Very Low (less than CHF 20 per month)
+        entertainment:
+          type: number
+          minimum: 0
+          maximum: 4
+          description: expenses for leisure activities, hobbies, pets 0 = Very high (more than CHF 600 per month), 1 = High (ca. CHF 400 per month), 2 = Average (ca. CHF 250 per month), 3 = Low (ca. CHF 100 per month), 4 = Very Low (less than CHF 50 per month)
+        furniture:
+          type: number
+          minimum: 0
+          maximum: 4
+          description: monthly expenses for furniture and household items 0 = Very high (more than CHF 300 per month), 1 = High (ca.  CHF 200 per month), 2 = Average (ca. CHF 125 per month), 3 = Low (ca. CHF 75 per month), 4 = Very Low (less than CHF 25 per month)
+        eatOut:
+          type: number
+          minimum: 0
+          maximum: 4
+          description: monthly expenses for restaurants, hotels, cafeterias, etc. 0 = Very high (more than CHF 600 per month), 1 = High (ca. CHF 400 per month), 2 = Average (ca. CHF 250 per month), 3 = Low (ca. CHF 100 per month), 4 = Very Low (less than CHF 50 per month)
+        investments:
+          type: number
+          minimum: 0
+          maximum: 4
+          description: sustainable investments 0 = None, 1 = small, 2 = large, 3 = all, 4 = don't know
+
     DataItem:
       type: object
       properties:
@@ -491,9 +660,6 @@ components:
     ChangeDailyData:
       type: object
       properties:
-        id:
-          type: number
-          minimum: 0
         amountNumeric:
           type: number
           minimum: 0

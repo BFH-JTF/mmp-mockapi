@@ -3,8 +3,8 @@ import bodyParser from "body-parser";
 import cors from "cors"
 import Database from 'better-sqlite3';
 import jwt from "jsonwebtoken"
-import {IDailyItem, ICategory, IUserInfo, IGroupInfo} from "./interfaces"
-import {query} from "express-validator";
+import {IDailyItem, IUserInfo, IGroupInfo, ILifeStyleEmissions, ILifestyle} from "./interfaces"
+import {calcLifestyleEmissions} from "./energy.js"
 
 const db = new Database('db/mmp-mockapi.db');
 db.pragma('journal_mode = WAL');
@@ -60,8 +60,46 @@ app.get("/auth/:loginType/:userName/:credentials", (req:express.Request, res:exp
     }
 })
 
+let setLifeStyle = db.prepare('INSERT OR REPLACE INTO lifestyle (userID, houseType, heatingType, houseAge, temp, area, persons, warmWaterType, efficiency, fridge, washing, drying, eco, clothes, entertainment, furniture, eatOut, investements) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+app.post("/myData/lifestyle", authenticateJWT, (req:express.Request, res:express.Response) => {
+    try{
+        setLifeStyle.run(req.userID, req.body.houseType, req.body.heatingType, req.body.houseAge, req.body.temp, req.body.area, req.body.persons, req.body.warmWaterType, req.body.efficiency, req.body.fridge, req.body.washing, req.body.drying, req.body.eco, req.body.clothes, req.body.entertainment, req.body.furniture, req.body.eatOut, req.body.investments);
+        res.sendStatus(200);
+    }
+    catch (e) {
+        console.log(e);
+        res.sendStatus(400);
+    }
+})
+
+let getLifeStyle = db.prepare('SELECT houseType, heatingType, houseAge, temp, area, persons, warmWaterType, efficiency, fridge, washing, drying, eco, clothes, entertainment, furniture, eatOut, investements FROM lifestyle WHERE userID = ?');
+app.get("/myData/lifestyle", authenticateJWT, (req:express.Request, res:express.Response) => {
+    try{
+        let data = getLifeStyle.get(req.userID);
+        res.status(200).json(data);
+    }
+    catch (e) {
+        console.log(e);
+        res.sendStatus(400);
+    }
+})
+
+app.get("/myData/lifestyle/emissions", authenticateJWT, (req:express.Request, res:express.Response) => {
+    try{
+        let data = <ILifestyle> getLifeStyle.get(req.userID);
+        console.log(data);
+        let emissions = calcLifestyleEmissions(data)
+        console.log(emissions);
+        res.status(200).json(emissions);
+    }
+    catch (e) {
+        console.log(e);
+        res.sendStatus(400);
+    }
+})
+
+const selectGroupInfo = db.prepare('SELECT \'groups\'.name, periodStart, periodEnd FROM \'groups\' inner join users on users.\'group\' = \'groups\'.id WHERE users.id = ?');
 app.get("/myData/groupInfo", authenticateJWT, (req:express.Request, res:express.Response) => {
-    const selectGroupInfo = db.prepare('SELECT \'groups\'.name, periodStart, periodEnd FROM \'groups\' inner join users on users.\'group\' = \'groups\'.id WHERE users.id = ?');
     let groupInfo = <IGroupInfo> selectGroupInfo.get(req.userID);
     res.json(groupInfo);
 })
@@ -69,6 +107,7 @@ app.get("/myData/groupInfo", authenticateJWT, (req:express.Request, res:express.
 let insertDaily = db.prepare('INSERT INTO tracker_daily (user, date, amountNumeric, amountOption, item) VALUES (?,?,?,?,?)');
 let getDaily4User = db.prepare('SELECT COUNT(*) as entryTotal FROM tracker_daily WHERE date=? AND user=? AND item=?')
 let getLastId = db.prepare('SELECT seq FROM sqlite_sequence WHERE name=?');
+
 app.post("/myData/addDaily", authenticateJWT, (req:express.Request, res:express.Response) => {
     let daily: IDailyItem = req.body;
     daily.userID = Number(req.userID)
@@ -79,8 +118,7 @@ app.post("/myData/addDaily", authenticateJWT, (req:express.Request, res:express.
         else {
             insertDaily.run(daily.userID, daily.date, daily.amountNumeric, daily.amountOption, daily.itemID);
             let lastID = <{seq: number}> getLastId.get("tracker_daily");
-            console.log(lastID);
-            res.json({lastID: lastID.seq});
+            res.status(200).json({lastID: lastID.seq});
         }
     }
     catch (e) {
@@ -90,12 +128,9 @@ app.post("/myData/addDaily", authenticateJWT, (req:express.Request, res:express.
 })
 
 let updateDaily = db.prepare('UPDATE tracker_daily SET amountNumeric = ?, amountOption = ? WHERE id = ? AND user = ?');
-app.post("/myData/editDaily/:entryID", authenticateJWT, (req:express.Request, res:express.Response) => {
-    let daily = req.body;
-    daily.userID = Number(req.userID);
-    daily.id = req.params.entryID;
+app.post("/myData/updateDaily/:entryID", authenticateJWT, (req:express.Request, res:express.Response) => {
     try {
-        updateDaily.run(daily.amountNumeric, daily.amountOption, daily.id, daily.userID);
+        updateDaily.run(req.body.amountNumeric, req.body.amountOption, req.params.entryID, req.userID);
         res.sendStatus(200);
     }
     catch (e) {
@@ -104,11 +139,14 @@ app.post("/myData/editDaily/:entryID", authenticateJWT, (req:express.Request, re
     }
 })
 
-let removeDaily = db.prepare('DELETE FROM tracker_daily WHERE id = ? AND user = ?');
+let removeDaily = db.prepare('DELETE FROM tracker_daily WHERE tracker_daily.id = ? AND tracker_daily.user = ?');
 app.get("/myData/removeDaily/:entryID", authenticateJWT, (req:express.Request, res:express.Response) => {
     try {
-        removeDaily.run(req.params.entryID, req.userID);
-        res.sendStatus(200);
+        let result = removeDaily.run(req.params.entryID, req.userID);
+        if (result.changes > 0)
+            res.sendStatus(200);
+        else
+            res.sendStatus(404);
     }
     catch (e) {
         console.log("Error removing daily consumption data: ", e);
@@ -164,13 +202,17 @@ app.get("/myData/addFlight/:date/:origin/:destination/:flightClass", authenticat
 let removeFlight = db.prepare('DELETE FROM tracker_flights WHERE user = ? AND id = ?');
 app.get("/myData/removeFlight/:flightID", authenticateJWT, (req:express.Request, res:express.Response) => {
     try{
-        removeFlight.run(req.userID, req.params.flightID);
-        res.sendStatus(200);
+        let result = removeFlight.run(req.userID, req.params.flightID);
+        if (result.changes > 0)
+            res.sendStatus(200);
+        else
+            res.sendStatus(404);
     }
     catch (e) {
         res.sendStatus(400);
     }
 })
+
 
 app.listen(apiPort, () => {
     console.log(`Server is running on port ${apiPort}`);

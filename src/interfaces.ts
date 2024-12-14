@@ -1,10 +1,29 @@
 
 // Category
-export interface ICategory {
-    id: number,
-    name: string,
-    comment: string,
-    parent: number,
+export interface ILifestyle {
+    houseType: number,
+    heatingType: number,
+    houseAge: number,
+    temp: number,
+    area: number,
+    persons: number,
+    warmWaterType: number,
+    efficiency: number,
+    fridge: number,
+    washing: number
+    drying: number
+    eco: number
+    clothes: number
+    entertainment: number
+    furniture: number
+    eatOut: number,
+    investments: number
+}
+
+export interface ILifeStyleEmissions {
+    housing_co2: number,
+    energy_co2: number,
+    consumption_co2: number
 }
 
 export interface IDailyItem {
